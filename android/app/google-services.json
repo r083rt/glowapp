@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "930098300182",
+    "project_id": "rn-glow-app",
+    "storage_bucket": "rn-glow-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:930098300182:android:4aa7fcc1ffd45142f07c37",
+        "android_client_info": {
+          "package_name": "com.glow_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "930098300182-u1hmmfjd1b6q08rplsa9uh5smekgiqga.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.glow_app",
+            "certificate_hash": "ff18ee8d410c17cbcab8fda0c09ef1ee3d834422"
+          }
+        },
+        {
+          "client_id": "930098300182-4v0e3td02fiihiqp6vb4obpblss7gao6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2i_bNDIvh86U66DI_1x_pwRpE3VhjjHU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "930098300182-4v0e3td02fiihiqp6vb4obpblss7gao6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
