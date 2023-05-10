@@ -7,6 +7,10 @@ import Login from '../screens/LoginScreen';
 import Dashboard from '../screens/DashboardScreen';
 import MUAProfile from '../screens/MUAProfileScreen';
 
+import MUADashboard from '../screens/MUADashboardScreen';
+import MUAPorto from '../screens/MUAPortoScreen';
+import AdminDashboard from '../screens/AdminDashboardScreen';
+
 //MUA
 import MUAHome from '../screens/mua/MUAHomeScreen';
 
@@ -40,6 +44,21 @@ function MainStackNavigator({navigation, route}) {
         <Stack.Screen
           name="Dashboard"
           component={Dashboard}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="AdminDashboard"
+          component={AdminDashboard}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="MUADashboard"
+          component={MUADashboard}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="MUAPorto"
+          component={MUAPorto}
           options={{headerShown: false}}
         />
         <Stack.Screen

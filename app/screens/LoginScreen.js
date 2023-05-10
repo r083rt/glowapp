@@ -15,6 +15,7 @@ import {
 import Toast from 'react-native-toast-message';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function Login({navigation}) {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -29,25 +30,59 @@ export default function Login({navigation}) {
 
         const user = await firestore().collection('users').doc(uid).get();
 
+        const role = user.data().role;
+
         const nama = user.data().nama;
+        const dataUID = ['uid', uid];
+        const dataNama = ['nama', nama];
+        await AsyncStorage.multiSet([dataUID, dataNama]);
+
         Toast.show({
           type: 'success',
           text1: 'Login Success',
           text2: 'Welcome back, ' + nama,
         });
-        navigation.replace('Dashboard', {
-          user: user,
-        });
+        if (role === 'pelanggan') {
+          navigation.replace('Dashboard', {
+            user: user.data(),
+          });
+        } else if (role === 'mua') {
+          const mua = await firestore().collection('mua').doc(uid).get();
+          navigation.replace('MUADashboard', {
+            user: mua.data(),
+          });
+        } else if (role === 'admin') {
+          navigation.replace('AdminDashboard', {
+            user: user,
+          });
+        }
+
         // console.log(nama);
         // console.log('Loggin success!');
       })
       .catch(error => {
         if (error.code === 'auth/email-already-in-use') {
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'That email address is already in use!',
+          });
           console.log('That email address is already in use!');
+        }
+        if (error.code === 'auth/wrong-password') {
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Wrong Password!',
+          });
         }
 
         if (error.code === 'auth/invalid-email') {
-          console.log('That email address is invalid!');
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'That email address is invalid!',
+          });
         }
 
         console.error(error);

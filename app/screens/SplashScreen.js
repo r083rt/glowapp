@@ -2,12 +2,37 @@ import React, {useState, useEffect} from 'react';
 import {View} from 'react-native';
 import {Box, Center, Text, Image} from 'native-base';
 import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 export default function Splash({navigation}) {
   useEffect(() => {
     const unsubscribe = auth().onAuthStateChanged(user => {
-      console.log('user : ', user);
       if (user) {
-        navigation.replace('Dashboard');
+        const uid = user.uid;
+        console.log(uid);
+        firestore()
+          .collection('users')
+          .doc(uid)
+          .get()
+          .then(u => {
+            const role = u.data().role;
+            if (role === 'pelanggan') {
+              navigation.replace('Dashboard', {
+                user: u.data(),
+              });
+            } else if (role === 'mua') {
+              firestore()
+                .collection('mua')
+                .doc(uid)
+                .get()
+                .then(mua => {
+                  navigation.replace('MUADashboard', {
+                    user: mua.data(),
+                  });
+                });
+            } else if (role === 'admin') {
+              navigation.replace('AdminDashboard');
+            }
+          });
       } else {
         navigation.replace('Login');
       }
