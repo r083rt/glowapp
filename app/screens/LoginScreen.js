@@ -11,18 +11,30 @@ import {
   Button,
   Spacer,
   Heading,
+  Modal,
 } from 'native-base';
 import Toast from 'react-native-toast-message';
-import auth from '@react-native-firebase/auth';
+import auth, {sendPasswordResetEmail} from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {TouchableOpacity} from 'react-native-gesture-handler';
 export default function Login({navigation}) {
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('123456');
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const handleLogin = () => {
+    if (email === '' || password === '') {
+      Toast.show({
+        type: 'error',
+        text1: 'Attention',
+        text2: 'Email and Password must not be empty',
+      });
+      return;
+    }
+    setIsLoading(true);
     auth()
       .signInWithEmailAndPassword(email, password)
       .then(async res => {
@@ -42,6 +54,7 @@ export default function Login({navigation}) {
           text1: 'Login Success',
           text2: 'Welcome back, ' + nama,
         });
+        setIsLoading(false);
         if (role === 'pelanggan') {
           navigation.replace('Dashboard', {
             user: user.data(),
@@ -53,7 +66,7 @@ export default function Login({navigation}) {
           });
         } else if (role === 'admin') {
           navigation.replace('AdminDashboard', {
-            user: user,
+            user: user.data(),
           });
         }
 
@@ -61,6 +74,15 @@ export default function Login({navigation}) {
         // console.log('Loggin success!');
       })
       .catch(error => {
+        setIsLoading(false);
+        if (error.code === 'auth/user-not-found') {
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'User not found!',
+          });
+        }
+
         if (error.code === 'auth/email-already-in-use') {
           Toast.show({
             type: 'error',
@@ -89,8 +111,56 @@ export default function Login({navigation}) {
       });
   };
 
+  function handleResetPassword() {
+    auth()
+      .sendPasswordResetEmail(email)
+      .then(
+        Toast.show({
+          type: 'success',
+          text1: 'Reset Password Success',
+          text2: 'Please check your inbox for the reset link.',
+        }),
+      );
+  }
+
   return (
     <Box flex={1} bgColor={'#FFF'}>
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
+        <Modal.Content maxWidth="400px">
+          <Modal.CloseButton />
+          <Modal.Header>Reset Password</Modal.Header>
+          <Modal.Body>
+            <Input
+              onChangeText={text => setEmail(text)}
+              placeholder="Type your email."
+            />
+            <Text fontSize={10} fontStyle={'italic'}>
+              We will send the reset link to your email.
+            </Text>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button.Group space={2}>
+              <Button
+                variant="ghost"
+                _text={{color: '#F47C7C'}}
+                // colorScheme="blueGray"
+                onPress={() => {
+                  setShowModal(false);
+                }}>
+                Cancel
+              </Button>
+              <Button
+                backgroundColor={'#F47C7C'}
+                onPress={() => {
+                  setShowModal(false);
+                  handleResetPassword();
+                }}>
+                Pay
+              </Button>
+            </Button.Group>
+          </Modal.Footer>
+        </Modal.Content>
+      </Modal>
       <Center flex={1}>
         <Heading size={'xl'} style={{marginBottom: 20}} color={'#F47C7C'}>
           GLOW APP
@@ -138,18 +208,21 @@ export default function Login({navigation}) {
               onPress={handleLogin}
               size={'md'}
               isLoading={isLoading}
-              _text={{fontWeight: 'extrabold'}}
-              isLoadingText={'Harap Tunggu ...'}>
+              isLoadingText={'Please wait ...'}>
               SIGN IN
             </Button>
             <Spacer />
-            <Text textAlign={'center'} color={'#F47C7C'}>
-              Don’t have an account ?{' '}
-              <Text fontWeight={'bold'}>Regiter Account</Text> disini
-            </Text>
-            <Text textAlign={'center'} fontWeight={'bold'} color={'#F47C7C'}>
-              Forget Password
-            </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('RegisterUser')}>
+              <Text textAlign={'center'} fontWeight={'bold'} color={'#F47C7C'}>
+                Don't have an account ? Register now.
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowModal(true)}>
+              <Text textAlign={'center'} fontWeight={'bold'} color={'#F47C7C'}>
+                Reset Password
+              </Text>
+            </TouchableOpacity>
           </Stack>
         </FormControl>
       </Center>

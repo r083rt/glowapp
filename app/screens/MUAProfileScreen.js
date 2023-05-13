@@ -16,10 +16,11 @@ import {
   ScrollView,
   Modal,
   TextField,
+  Image,
 } from 'native-base';
 import Toast from 'react-native-toast-message';
 import auth from '@react-native-firebase/auth';
-import {Image, Dimensions} from 'react-native';
+import {Dimensions} from 'react-native';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
 import IoniconsIcon from 'react-native-vector-icons/Ionicons';
 import {TouchableOpacity} from 'react-native-gesture-handler';
@@ -31,6 +32,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function MUAProfile({navigation, route}) {
   const [showModal, setShowModal] = useState(false);
+  const [showModalOption, setShowModalOption] = useState(false);
   const _width = Dimensions.get('screen').width;
   const _height = Dimensions.get('screen').height;
   const data = route.params.data;
@@ -41,6 +43,10 @@ export default function MUAProfile({navigation, route}) {
   const [showDate, setShowDate] = useState(false);
   const [showTime, setShowTime] = useState(false);
   const [notes, setNotes] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState({
+    id: '',
+    foto: '',
+  });
   const [pickedDate, setPickedDate] = useState('');
 
   useEffect(() => {
@@ -52,7 +58,10 @@ export default function MUAProfile({navigation, route}) {
           .get();
         const newData = [];
         querySnapshot.forEach(doc => {
-          newData.push(doc.data());
+          newData.push({
+            id: doc.id,
+            data: doc.data(),
+          });
         });
         setPorto(newData);
       } catch (error) {
@@ -109,8 +118,43 @@ export default function MUAProfile({navigation, route}) {
     setBookingTime(currentTime);
   };
 
+  const handleStartChat = async () => {
+    const nama = await AsyncStorage.getItem('nama');
+    const uid = await AsyncStorage.getItem('uid');
+    navigation.navigate('Chat', {
+      chatId: route.params.data.uid + uid,
+      receiverId: route.params.data.uid,
+      senderId: uid,
+      senderName: nama,
+    });
+  };
+
+  const handleSelectPhoto = e => {
+    console.log(e.data.foto);
+    setSelectedPhoto({
+      foto: e.data.foto,
+      id: e.id,
+    });
+    setShowModalOption(true);
+  };
   return (
     <Box flex={1}>
+      <Modal onClose={() => setShowModalOption(false)} isOpen={showModalOption}>
+        <Modal.Content maxWidth="400px">
+          <Modal.Body>
+            <Image
+              borderRadius={10}
+              source={{
+                uri: selectedPhoto.foto,
+              }}
+              w={400}
+              h={380}
+              mr={3}
+              mb={5}
+            />
+          </Modal.Body>
+        </Modal.Content>
+      </Modal>
       <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
         <Modal.Content maxWidth="400px">
           <Modal.CloseButton />
@@ -191,7 +235,7 @@ export default function MUAProfile({navigation, route}) {
 
       <ScrollView flex={1} p={5} bgColor={'#FFF2F2'}>
         <TouchableOpacity
-          style={{marginTop: 10}}
+          style={{marginTop: 40}}
           onPress={() => navigation.goBack()}>
           <IoniconsIcon name="arrow-back-circle" color={'#F47C7C'} size={40} />
         </TouchableOpacity>
@@ -218,7 +262,7 @@ export default function MUAProfile({navigation, route}) {
                 {data.rate}
               </Text>
             </HStack>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handleStartChat}>
               <HStack
                 w={120}
                 px={5}
@@ -247,10 +291,11 @@ export default function MUAProfile({navigation, route}) {
             <Spinner />
           </Center>
         ) : (
-          <ListPorto data={porto} />
+          <ListPorto onPressItem={handleSelectPhoto} data={porto} />
         )}
       </ScrollView>
       <Button
+        isDisabled={parseInt(route.params.coin) < parseInt(data.rate)}
         m={5}
         backgroundColor={'#F47C7C'}
         borderRadius={10}

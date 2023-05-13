@@ -22,6 +22,7 @@ import Carousel, {Pagination} from 'react-native-snap-carousel';
 import {TouchableOpacity} from 'react-native-gesture-handler';
 import auth from '@react-native-firebase/auth';
 import numeral from 'numeral';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function DashBoard({navigation, route}) {
   const _width = Dimensions.get('screen').width;
@@ -36,66 +37,6 @@ export default function DashBoard({navigation, route}) {
   const [tips, setTips] = useState([]);
   const user = route.params.user;
 
-  // useEffect(() => {
-  //   // alert(user.uid);
-  //   const unsubscribe = firestore()
-  //     .collection('promo')
-  //     .onSnapshot(querySnapshot => {
-  //       const urls = [];
-  //       querySnapshot.forEach(documentSnapshot => {
-  //         urls.push(documentSnapshot.data().gambar);
-  //       });
-
-  //       setPromos(urls);
-  //       setLoading(false);
-  //     });
-
-  //   return unsubscribe;
-  // }, [promos, setPromos]);
-
-  // useEffect(() => {
-  //   const unsubscribe = firestore()
-  //     .collection('mua')
-  //     .where('motm', '==', true)
-  //     .onSnapshot(querySnapshot => {
-  //       const mua = [];
-  //       querySnapshot.forEach(documentSnapshot => {
-  //         mua.push(documentSnapshot.data());
-  //       });
-  //       setMOTM(mua[0]);
-  //       setLoading(false);
-  //     });
-  //   return unsubscribe;
-  // }, [motm, setMOTM]);
-
-  // useEffect(() => {
-  //   const unsubscribe = firestore()
-  //     .collection('tips')
-  //     .onSnapshot(querySnapshot => {
-  //       const tip = [];
-  //       querySnapshot.forEach(documentSnapshot => {
-  //         tip.push(documentSnapshot.data());
-  //       });
-  //       setTips(tip[0]);
-  //       setLoading(false);
-  //     });
-  //   return unsubscribe;
-  // }, [tips, setTips]);
-
-  // useEffect(() => {
-  //   const unsubscribe = firestore()
-  //     .collection('mua')
-  //     .onSnapshot(querySnapshot => {
-  //       const mua = [];
-  //       querySnapshot.forEach(documentSnapshot => {
-  //         mua.push(documentSnapshot.data());
-  //       });
-  //       setMUAS(mua);
-  //       setLoading(false);
-  //     });
-
-  //   return unsubscribe;
-  // }, [muas, setMUAS]);
   useEffect(() => {
     const getMUA = async () => {
       try {
@@ -142,30 +83,40 @@ export default function DashBoard({navigation, route}) {
   }, []);
 
   const handleChooseMUA = e => {
-    console.log(e);
     navigation.navigate('MUAProfile', {
       data: e,
+      coin: user.coin,
     });
   };
   return (
-    <ScrollView flex={1} bgColor={'#FFF2F2'}>
+    <ScrollView flex={1} mt={10} bgColor={'#FFF2F2'}>
       <VStack space={2} px={5}>
         <HStack space={6} mt={10}>
           <TouchableOpacity
             onPress={() => {
-              auth()
-                .signOut()
-                .then(() => navigation.replace('Splash'));
+              navigation.navigate('UserProfile', {
+                user: user,
+              });
             }}>
-            <Avatar
-              w={70}
-              h={70}
-              bg="#F47C7C"
-              source={{
-                uri: user.foto,
-              }}>
-              {user.nama}
-            </Avatar>
+            {user.foto != '' ? (
+              <Avatar
+                w={70}
+                h={70}
+                bg="#F47C7C"
+                source={{
+                  uri: user.foto,
+                }}>
+                {user.nama}
+              </Avatar>
+            ) : (
+              <Avatar
+                w={70}
+                h={70}
+                bg="#F47C7C"
+                source={require('../assets/make-up.png')}>
+                {user.nama}
+              </Avatar>
+            )}
           </TouchableOpacity>
 
           <VStack space={1}>

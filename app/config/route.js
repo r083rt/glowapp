@@ -7,9 +7,16 @@ import Login from '../screens/LoginScreen';
 import Dashboard from '../screens/DashboardScreen';
 import MUAProfile from '../screens/MUAProfileScreen';
 
+import RegisterUser from '../screens/RegisterUserScreen';
+import UserProfile from '../screens/UserProfileScreen';
+
 import MUADashboard from '../screens/MUADashboardScreen';
 import MUAPorto from '../screens/MUAPortoScreen';
 import AdminDashboard from '../screens/AdminDashboardScreen';
+
+import Chat from '../screens/ChatScreen';
+
+import Payment from '../screens/PaymentScreen';
 
 //MUA
 import MUAHome from '../screens/mua/MUAHomeScreen';
@@ -44,6 +51,26 @@ function MainStackNavigator({navigation, route}) {
         <Stack.Screen
           name="Dashboard"
           component={Dashboard}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="RegisterUser"
+          component={RegisterUser}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="Payment"
+          component={Payment}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="Chat"
+          component={Chat}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="UserProfile"
+          component={UserProfile}
           options={{headerShown: false}}
         />
         <Stack.Screen

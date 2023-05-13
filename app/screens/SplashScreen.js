@@ -8,7 +8,7 @@ export default function Splash({navigation}) {
     const unsubscribe = auth().onAuthStateChanged(user => {
       if (user) {
         const uid = user.uid;
-        console.log(uid);
+
         firestore()
           .collection('users')
           .doc(uid)
@@ -30,7 +30,7 @@ export default function Splash({navigation}) {
                   });
                 });
             } else if (role === 'admin') {
-              navigation.replace('AdminDashboard');
+              navigation.replace('AdminDashboard', {user: u.data()});
             }
           });
       } else {

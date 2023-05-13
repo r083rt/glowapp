@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   Box,
   Text,
@@ -14,13 +14,14 @@ import {
   Divider,
   Fab,
   ScrollView,
+  Image,
   Icon,
   Modal,
 } from 'native-base';
 import Toast from 'react-native-toast-message';
 import storage from '@react-native-firebase/storage';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
-import {Image, Dimensions, Alert} from 'react-native';
+import {Dimensions, Alert} from 'react-native';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
 import IoniconsIcon from 'react-native-vector-icons/Ionicons';
 import firestore from '@react-native-firebase/firestore';
@@ -31,8 +32,13 @@ import {ListBooking, ListPorto} from '../components';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function MUAPorto({navigation, route}) {
   const [showModal, setShowModal] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState({
+    id: '',
+    foto: '',
+  });
+  const [showModalOption, setShowModalOption] = useState(false);
   const [porto, setPorto] = useState([]);
-  const [image, setImage] = useState(null);
+
   const [uploading, setUploading] = useState(false);
   const [transferred, setTransferred] = useState(0);
   const _width = Dimensions.get('screen').width;
@@ -47,8 +53,12 @@ export default function MUAPorto({navigation, route}) {
         .get();
       const newData = [];
       querySnapshot.forEach(doc => {
-        newData.push(doc.data());
+        newData.push({
+          id: doc.id,
+          data: doc.data(),
+        });
       });
+
       setPorto(newData);
     } catch (error) {
       console.log('Error getting documents: ', error);
@@ -72,13 +82,7 @@ export default function MUAPorto({navigation, route}) {
     };
     launchImageLibrary(imageOptions, result => {
       if (result.assets) {
-        console.log(result.assets[0].uri);
-        console.log(result.assets[0].fileName);
-
         uploadImage(result.assets[0].uri);
-        // const reference = storage().ref(result.assets[0].fileName);
-        //   const res = result.assets[0];
-        //   setFoto64(res.base64);
       }
     });
   };
@@ -127,18 +131,34 @@ export default function MUAPorto({navigation, route}) {
 
     return downloadURL;
   };
+
+  const handleSelectPhoto = e => {
+    console.log(e);
+    setSelectedPhoto({
+      foto: e.data.foto,
+      id: e.id,
+    });
+    setShowModalOption(true);
+  };
+
+  const handleDeletePhoto = e => {
+    console.log(selectedPhoto.id);
+    firestore()
+      .collection('porto')
+      .doc(selectedPhoto.id)
+      .delete()
+      .then(() => {
+        Toast.show({
+          type: 'success',
+          text1: 'Delete Photo Success',
+        });
+        setShowModalOption(false);
+        getData();
+      });
+  };
+
   return (
-    <Box flex={1} bgColor={'#FFF2F2'} p={10}>
-      <Fab
-        onPress={() => {
-          handleLaunchGallery();
-        }}
-        bgColor={'#F47C7C'}
-        renderInPortal={false}
-        shadow={2}
-        size="sm"
-        icon={<FontAwesomeIcon name={'plus'} size={20} color={'#FFF'} />}
-      />
+    <Box flex={1} bgColor={'#FFF2F2'} p={5}>
       <Modal isOpen={showModal}>
         <Modal.Content maxWidth="400px">
           <Modal.Body>
@@ -149,7 +169,36 @@ export default function MUAPorto({navigation, route}) {
           </Modal.Body>
         </Modal.Content>
       </Modal>
-      <HStack space={10} alignItems={'center'} alignContent={'center'}>
+      <Modal onClose={() => setShowModalOption(false)} isOpen={showModalOption}>
+        <Modal.Content maxWidth="400px">
+          <Modal.Body>
+            <Heading mb={5}>Delete this photo ?</Heading>
+            <HStack justifyContent={'space-between'}>
+              <Button w={'48%'} onPress={() => setShowModalOption(false)}>
+                Cancel
+              </Button>
+              <Button
+                w={'48%'}
+                colorScheme={'danger'}
+                onPress={handleDeletePhoto}>
+                Delete
+              </Button>
+            </HStack>
+          </Modal.Body>
+        </Modal.Content>
+      </Modal>
+      <Fab
+        onPress={() => {
+          handleLaunchGallery();
+        }}
+        bgColor={'#F47C7C'}
+        renderInPortal={false}
+        shadow={2}
+        size="sm"
+        icon={<FontAwesomeIcon name={'plus'} size={20} color={'#FFF'} />}
+      />
+
+      <HStack mt={10} space={10} alignItems={'center'} alignContent={'center'}>
         <TouchableOpacity
           style={{marginTop: 10}}
           onPress={() => navigation.goBack()}>
@@ -159,7 +208,12 @@ export default function MUAPorto({navigation, route}) {
       </HStack>
 
       <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
-      <ListPorto data={porto} />
+      <ListPorto onPressItem={handleSelectPhoto} data={porto} />
+      {/* <Image
+        source={{
+          uri: 'https://reactnative.dev/img/tiny_logo.png',
+        }}
+      /> */}
     </Box>
   );
 }
