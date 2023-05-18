@@ -25,8 +25,6 @@ import {Dimensions, Alert} from 'react-native';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
 import IoniconsIcon from 'react-native-vector-icons/Ionicons';
 import firestore from '@react-native-firebase/firestore';
-import {utils} from '@react-native-firebase/app';
-import auth from '@react-native-firebase/auth';
 import {TouchableOpacity} from 'react-native-gesture-handler';
 import {ListBooking, ListPorto} from '../components';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -173,6 +171,16 @@ export default function MUAPorto({navigation, route}) {
         <Modal.Content maxWidth="400px">
           <Modal.Body>
             <Heading mb={5}>Delete this photo ?</Heading>
+            <Image
+              borderRadius={10}
+              source={{
+                uri: selectedPhoto.foto,
+              }}
+              w={400}
+              h={380}
+              mr={3}
+              mb={5}
+            />
             <HStack justifyContent={'space-between'}>
               <Button w={'48%'} onPress={() => setShowModalOption(false)}>
                 Cancel

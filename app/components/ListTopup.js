@@ -38,6 +38,13 @@ const ListTopup = ({onPressItem, data}) => {
 
   return (
     <FlatList
+      ListEmptyComponent={() => {
+        return (
+          <Box w={'100%'}>
+            <Text textAlign={'center'}>Belum ada topup status</Text>
+          </Box>
+        );
+      }}
       data={data}
       renderItem={renderItem}
       keyExtractor={item => item.customer_id + item.jumlah.toString()}

@@ -22,11 +22,13 @@ import auth from '@react-native-firebase/auth';
 import {Image, Dimensions, TouchableOpacity} from 'react-native';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
 import IoniconsIcon from 'react-native-vector-icons/Ionicons';
-import firestore from '@react-native-firebase/firestore';
+
 import {CoinSelection, ListAppointment, ListTopup} from '../components';
-import moment from 'moment';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+
+import storage from '@react-native-firebase/storage';
+import firestore from '@react-native-firebase/firestore';
 
 export default function UserProfile({navigation, route}) {
   const [isLoading, setIsLoading] = useState(true);
@@ -44,6 +46,7 @@ export default function UserProfile({navigation, route}) {
         const uid = await AsyncStorage.getItem('uid');
         const querySnapshot = await firestore()
           .collection('booking')
+          .where('status_pekerjaan', '==', 'Menunggu')
           .where('customer_id', '==', uid)
           .get();
         const newData = [];
@@ -82,6 +85,81 @@ export default function UserProfile({navigation, route}) {
     getAppointment();
     getTrx();
   }, []);
+
+  const uploadImage = async imageUri => {
+    const uid = await AsyncStorage.getItem('uid');
+    // create a unique file name for the image
+    const fileName = `${Date.now()}.jpg`;
+
+    // create a reference to the storage location where the image will be uploaded
+    const reference = storage().ref(`profile/${uid}`);
+
+    // upload the image to the storage location
+    const task = reference.putFile(imageUri);
+
+    // wait for the upload to complete and get the download URL of the uploaded image
+    const downloadURL = await new Promise((resolve, reject) => {
+      task.on(
+        'state_changed',
+        taskSnapshot => {
+          console.log(
+            `${taskSnapshot.bytesTransferred} transferred out of ${taskSnapshot.totalBytes}`,
+          );
+        },
+        error => {
+          reject(error);
+        },
+        async () => {
+          const url = await reference.getDownloadURL();
+          resolve(url);
+        },
+      );
+    });
+
+    await firestore().collection('users').doc(uid).update({
+      foto: downloadURL,
+    });
+    Toast.show({
+      type: 'success',
+      text1: 'Upload Photo Success',
+    });
+
+    // getData();
+
+    return downloadURL;
+  };
+
+  const handleLaunchGallery = e => {
+    // setFoto64('');
+    const imageOptions = {
+      title: 'Capture Image',
+      quality: 0.8,
+
+      rotation: 0,
+      maxHeight: 720,
+      maxWidth: 576,
+      mediaType: 'photo',
+      includeBase64: true,
+    };
+    launchImageLibrary(imageOptions, result => {
+      if (result.assets) {
+        console.log(result.assets[0].uri);
+        uploadImage(result.assets[0].uri);
+      }
+    });
+  };
+
+  const handleChat = async e => {
+    const nama = await AsyncStorage.getItem('nama');
+    const uid = await AsyncStorage.getItem('uid');
+    navigation.navigate('Chat', {
+      chatId: e.mua_id + uid,
+      receiverId: e.mua_id,
+      receiverName: e.mua_name,
+      senderId: uid,
+      senderName: nama,
+    });
+  };
 
   return (
     <Box flex={1} bgColor={'#FFF2F2'}>
@@ -134,25 +212,29 @@ export default function UserProfile({navigation, route}) {
         <HStack mt={10} space={5} w={_width * 0.8}>
           <Box w={_width * 0.3} h={_width * 0.4}>
             {user.foto != '' ? (
-              <Image
-                source={{uri: user.foto}}
-                borderRadius={10}
-                style={{
-                  width: _width * 0.3,
-                  height: _width * 0.38,
-                  resizeMode: 'cover',
-                }}
-              />
+              <TouchableOpacity onPress={handleLaunchGallery}>
+                <Image
+                  source={{uri: user.foto}}
+                  borderRadius={10}
+                  style={{
+                    width: _width * 0.3,
+                    height: _width * 0.38,
+                    resizeMode: 'cover',
+                  }}
+                />
+              </TouchableOpacity>
             ) : (
-              <Image
-                source={require('../assets/make-up.png')}
-                borderRadius={10}
-                style={{
-                  width: _width * 0.3,
-                  height: _width * 0.3,
-                  resizeMode: 'cover',
-                }}
-              />
+              <TouchableOpacity onPress={handleLaunchGallery}>
+                <Image
+                  source={require('../assets/make-up.png')}
+                  borderRadius={10}
+                  style={{
+                    width: _width * 0.3,
+                    height: _width * 0.3,
+                    resizeMode: 'cover',
+                  }}
+                />
+              </TouchableOpacity>
             )}
           </Box>
           <VStack space={3}>
@@ -193,7 +275,7 @@ export default function UserProfile({navigation, route}) {
         {isLoading == true ? (
           <Spinner color={'#F47C7C'} />
         ) : (
-          <ListAppointment data={appointment} />
+          <ListAppointment data={appointment} onPressItem={handleChat} />
         )}
         <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
         <Heading size={'md'} mb={4}>

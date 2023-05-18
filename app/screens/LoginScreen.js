@@ -155,7 +155,7 @@ export default function Login({navigation}) {
                   setShowModal(false);
                   handleResetPassword();
                 }}>
-                Pay
+                Reset
               </Button>
             </Button.Group>
           </Modal.Footer>

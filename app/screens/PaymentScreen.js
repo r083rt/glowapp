@@ -37,16 +37,36 @@ export default function Payment({navigation, route}) {
   const {isOpen, onOpen, onClose} = useDisclose();
   const [selectedPayment, setSelectedPayment] = useState('');
   const [payment, setPayment] = useState([]);
+  const selectedCoin = route.params.coin;
+  const [disc, setDisc] = useState(0);
+  const [total, setTotal] = useState('');
   const nominal = new Intl.NumberFormat('id-ID', {
     minimumFractionDigits: 0,
   }).format(parseInt(route.params.coin));
-  const total = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-  }).format(parseInt(route.params.coin) * 1000);
 
   useEffect(() => {
+    console.log(parseInt(route.params.coin) * 1000);
+    const tot = parseInt(route.params.coin) * 1000;
+    let discount = 0;
+    if (selectedCoin === 1000) {
+      discount = tot * 0.03;
+    } else if (selectedCoin === 1500) {
+      discount = tot * 0.05;
+    } else if (selectedCoin === 2000) {
+      discount = tot * 0.07;
+    }
+    setDisc(
+      new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: 0,
+      }).format(parseInt(discount)),
+    );
+    setTotal(
+      new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+      }).format(parseInt(route.params.coin) * 1000 - discount),
+    );
     const getPaymentType = async () => {
       try {
         const querySnapshot = await firestore()
@@ -141,6 +161,12 @@ export default function Payment({navigation, route}) {
           <FontAwesomeIcon name={'coins'} size={26} color={'#F47C7C'} />
           <Heading>{nominal}</Heading>
         </HStack>
+        {disc != 0 ? (
+          <>
+            <Text mt={10}>Discount</Text>
+            <Heading>{disc}</Heading>
+          </>
+        ) : null}
         <Text mt={10}>Total Payment</Text>
         <Heading size="xl" mb={10}>
           {total}

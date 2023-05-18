@@ -1,5 +1,5 @@
 import React from 'react';
-import {Text, HStack, VStack, Box, Button, Image} from 'native-base';
+import {Text, HStack, VStack, Box, Button, Center} from 'native-base';
 import {TouchableOpacity, FlatList} from 'react-native';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
 import moment from 'moment';
@@ -40,6 +40,7 @@ const ListBooking = ({onPressItem, data}) => {
               <FontAwesomeIcon name={'coins'} color={'#F47C7C'} />
               <Text fontWeight={'bold'}>{nominal}</Text>
             </HStack>
+            {/* <Text>{item.uid}</Text> */}
           </Box>
         </TouchableOpacity>
       </VStack>
@@ -48,6 +49,14 @@ const ListBooking = ({onPressItem, data}) => {
 
   return (
     <FlatList
+      ListEmptyComponent={() => {
+        return (
+          <Box w={'100%'}>
+            <Text textAlign={'center'}>Belum ada appointment</Text>
+          </Box>
+        );
+      }}
+      showsHorizontalScrollIndicator={false}
       horizontal
       data={data}
       renderItem={renderItem}

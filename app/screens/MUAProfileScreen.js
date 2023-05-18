@@ -75,19 +75,20 @@ export default function MUAProfile({navigation, route}) {
     const uid = await AsyncStorage.getItem('uid');
     const nama = await AsyncStorage.getItem('nama');
     console.log('current user ', data.uid);
-    const bookingID = uid + moment('DDMMYYHHmm');
+    const bookingID = uid + moment().format('DDMMYYHHmm');
     try {
       const docRef = await firestore()
         .collection('booking')
         .add({
           customer_id: uid,
           mua_id: data.uid,
+          mua_name: route.params.data.nama,
           id: bookingID,
           jam: moment(bookingTime).format('HH:mm'),
           tanggal: moment(bookingDate).format('YYYY-MM-DD'),
           nama: nama,
           nominal: parseInt(data.rate),
-          status_bayar: 'Menunggu Pembayaran',
+          status_bayar: 'Menunggu',
           status_pekerjaan: 'Menunggu',
           catatan: notes,
           kategori: data.kategori,
@@ -124,6 +125,7 @@ export default function MUAProfile({navigation, route}) {
     navigation.navigate('Chat', {
       chatId: route.params.data.uid + uid,
       receiverId: route.params.data.uid,
+      receiverName: route.params.data.nama,
       senderId: uid,
       senderName: nama,
     });
@@ -262,26 +264,28 @@ export default function MUAProfile({navigation, route}) {
                 {data.rate}
               </Text>
             </HStack>
-            <TouchableOpacity onPress={handleStartChat}>
-              <HStack
-                w={120}
-                px={5}
-                py={2}
-                alignContent={'center'}
-                alignItems={'center'}
-                space={2}
-                bgColor={'#F47C7C'}
-                borderRadius={15}>
-                <IoniconsIcon
-                  size={20}
-                  name="chatbox-ellipses-outline"
-                  color={'#FFF'}
-                />
-                <Text fontSize={17} fontWeight={'bold'} color={'#FFF'}>
-                  Chat
-                </Text>
-              </HStack>
-            </TouchableOpacity>
+
+            <Box
+              w={120}
+              px={5}
+              py={2}
+              alignContent={'center'}
+              alignItems={'center'}
+              bgColor={'#F47C7C'}
+              borderRadius={15}>
+              <TouchableOpacity onPress={handleStartChat}>
+                <HStack space={2}>
+                  <IoniconsIcon
+                    size={20}
+                    name="chatbox-ellipses-outline"
+                    color={'#FFF'}
+                  />
+                  <Text fontSize={17} fontWeight={'bold'} color={'#FFF'}>
+                    Chat
+                  </Text>
+                </HStack>
+              </TouchableOpacity>
+            </Box>
           </VStack>
         </HStack>
         <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />

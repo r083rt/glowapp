@@ -1,45 +1,74 @@
-import React from 'react';
-import {Text, HStack, VStack, Box, Button, Image} from 'native-base';
+import React, {memo} from 'react';
+import {Text, HStack, VStack, Box, Divider, Button, Image} from 'native-base';
 import {TouchableOpacity, FlatList} from 'react-native';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
-const ListMua = ({onPressItem, data}) => {
+import IoniconsIcon from 'react-native-vector-icons/Ionicons';
+const ListMua = ({onPressItem, onChat, data}) => {
   const renderItem = ({item, index}) => {
     const rate = new Intl.NumberFormat('id-ID', {
       minimumFractionDigits: 0,
     }).format(parseInt(item.rate));
-    return (
-      <VStack space={3}>
-        <TouchableOpacity
-          onPress={() => {
-            onPressItem(item);
-          }}>
-          <Image
-            borderRadius={10}
-            source={{uri: item.foto}}
-            w={150}
-            h={190}
-            mr={5}
-          />
+    const styles = item.style.toString();
 
-          <Text fontWeight={'bold'} fontSize={20} mt={2}>
-            {item.nama}
-          </Text>
-          <Text fontWeight={'bold'}>{item.kategori}</Text>
-          <HStack space={3} mt={2}>
-            <FontAwesomeIcon name={'coins'} color={'#F47C7C'} />
-            <Text color={'#F47C7C'} fontWeight={'bold'}>
-              {rate}
+    return (
+      <Box w={'100%'}>
+        <HStack space={4} w={'100%'}>
+          <TouchableOpacity
+            onPress={() => {
+              onPressItem(item);
+            }}>
+            <Image
+              borderRadius={10}
+              source={{uri: item.foto}}
+              w={100}
+              h={100}
+              mr={5}
+            />
+          </TouchableOpacity>
+          <VStack>
+            <HStack justifyContent={'space-between'}>
+              <Text fontWeight={'bold'} fontSize={20}>
+                {item.nama}
+              </Text>
+            </HStack>
+            <HStack space={3} alignItems={'center'}>
+              <FontAwesomeIcon name={'coins'} color={'#F47C7C'} />
+              <Text color={'#F47C7C'}>{rate}</Text>
+            </HStack>
+            <Text fontSize={12} fontWeight={'bold'}>
+              {item.kategori}
             </Text>
-          </HStack>
-        </TouchableOpacity>
-      </VStack>
+            <Text fontSize={12}>{styles}</Text>
+            <Button
+              mt={3}
+              _text={{fontWeight: 'bold'}}
+              size={'xs'}
+              width={100}
+              leftIcon={
+                <IoniconsIcon
+                  size={15}
+                  name="chatbox-ellipses-outline"
+                  color={'#FFF'}
+                />
+              }
+              backgroundColor={'#F47C7C'}
+              onPress={() => {
+                onChat(item);
+              }}>
+              {'Chat ' + item.nama}
+            </Button>
+          </VStack>
+        </HStack>
+
+        <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
+      </Box>
     );
   };
 
   return (
     <FlatList
-      showsHorizontalScrollIndicator={false}
-      horizontal
+      // showsHorizontalScrollIndicator={false}
+      // horizontal
       data={data}
       renderItem={renderItem}
       keyExtractor={item => item.uid}
@@ -47,4 +76,4 @@ const ListMua = ({onPressItem, data}) => {
   );
 };
 
-export default ListMua;
+export default memo(ListMua);

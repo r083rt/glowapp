@@ -20,6 +20,10 @@ import Payment from '../screens/PaymentScreen';
 
 //MUA
 import MUAHome from '../screens/mua/MUAHomeScreen';
+import MUAChat from '../screens/MUAChatScreen';
+import MUADetails from '../screens/MUADetailScreen';
+
+import PromoDetail from '../screens/PromoScreen';
 
 //Customer
 
@@ -91,6 +95,21 @@ function MainStackNavigator({navigation, route}) {
         <Stack.Screen
           name="MUAProfile"
           component={MUAProfile}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="PromoDetail"
+          component={PromoDetail}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="MUAChat"
+          component={MUAChat}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="MUADetails"
+          component={MUADetails}
           options={{headerShown: false}}
         />
       </Stack.Navigator>

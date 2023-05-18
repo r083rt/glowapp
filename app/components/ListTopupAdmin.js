@@ -21,7 +21,7 @@ const ListTopupAdmin = ({onPressItem, data}) => {
       minimumFractionDigits: 0,
     }).format(parseInt(item.jumlah));
     return (
-      <Box bgColor={'#FFF'} p={2} mb={3} borderRadius={10}>
+      <Box bgColor={'#FFF'} p={2} mb={3} borderRadius={10} mr={4}>
         <TouchableOpacity
           onPress={() => {
             onPressItem(item);
@@ -50,6 +50,7 @@ const ListTopupAdmin = ({onPressItem, data}) => {
 
   return (
     <FlatList
+      horizontal
       data={data}
       renderItem={renderItem}
       keyExtractor={item => item.customer_id + item.jumlah.toString()}

@@ -3,6 +3,8 @@ import {Box, Text, Button, HStack, VStack, Heading} from 'native-base';
 import {GiftedChat, Bubble} from 'react-native-gifted-chat';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import firestore from '@react-native-firebase/firestore';
+import {TouchableOpacity} from 'react-native';
+import IoniconsIcon from 'react-native-vector-icons/Ionicons';
 export default function Chat({navigation, route}) {
   const [uid, setUID] = useState('');
   const [messages, setMessages] = useState([]);
@@ -58,6 +60,15 @@ export default function Chat({navigation, route}) {
   }, []);
   return (
     <Box flex={1} bgColor={'#FFF'}>
+      <HStack space={10} alignItems={'center'}>
+        <TouchableOpacity
+          style={{marginTop: 50, marginLeft: 20}}
+          onPress={() => navigation.goBack()}>
+          <IoniconsIcon name="arrow-back-circle" color={'#F47C7C'} size={40} />
+        </TouchableOpacity>
+        <Heading mt={50}>{route.params.receiverName}</Heading>
+      </HStack>
+
       <GiftedChat
         renderBubble={props => {
           return (

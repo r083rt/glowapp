@@ -8,7 +8,12 @@ import CoinSelection from './CoinSelection';
 import ListTopup from './ListTopup';
 import ListChat from './ListChat';
 import ListTopupAdmin from './ListTopupAdmin';
+import ListFilter from './ListFilter';
+import ListMuaChat from './ListMuaChat';
+import ListPendingCoin from './ListPendingCoin';
+
 export {
+  ListPendingCoin,
   ListTopupAdmin,
   ListPromo,
   ListTips,
@@ -19,4 +24,6 @@ export {
   CoinSelection,
   ListTopup,
   ListChat,
+  ListFilter,
+  ListMuaChat,
 };
