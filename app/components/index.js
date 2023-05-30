@@ -11,8 +11,16 @@ import ListTopupAdmin from './ListTopupAdmin';
 import ListFilter from './ListFilter';
 import ListMuaChat from './ListMuaChat';
 import ListPendingCoin from './ListPendingCoin';
+import ListHistory from './ListHistory';
+import ListConfirm from './ListConfirm';
+import ListHistoryOrderMUA from './ListHistoryOrderMUA';
+import ListCoinRequest from './ListCoinRequest';
 
 export {
+  ListCoinRequest,
+  ListHistoryOrderMUA,
+  ListConfirm,
+  ListHistory,
   ListPendingCoin,
   ListTopupAdmin,
   ListPromo,

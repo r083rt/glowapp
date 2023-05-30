@@ -21,7 +21,13 @@ import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import {TouchableOpacity} from 'react-native-gesture-handler';
-import {ListBooking, ListTopupAdmin, ListFilter, ListMua} from '../components';
+import {
+  ListBooking,
+  ListTopupAdmin,
+  ListFilter,
+  ListMua,
+  ListCoinRequest,
+} from '../components';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AdminDashboard({navigation, route}) {
@@ -29,14 +35,18 @@ export default function AdminDashboard({navigation, route}) {
   const _height = Dimensions.get('screen').height;
   const [trxID, setTrxID] = useState('');
   const [showModalTopup, setShowModalTopup] = useState(false);
+  const [showModalPencairan, setShowModalPencairan] = useState(false);
   const [topups, setTopups] = useState([]);
   const [topupInfo, setTopupInfo] = useState({});
+  const [pencairanInfo, setPencairanInfo] = useState({});
   const [booking, setBooking] = useState([]);
   const user = route.params.user;
+  const [requests, setRequests] = useState([]);
   const [motm, setMOTM] = useState(null);
   const [muas, setMUAS] = useState([]);
   const [filterKategori, setFilterKategori] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [chatData, setChatData] = useState([]);
   const handleKategori = async e => {
     const querySnapshot = await firestore()
       .collection('mua')
@@ -49,6 +59,86 @@ export default function AdminDashboard({navigation, route}) {
     });
     setMUAS(newData);
     setFilterKategori(e);
+  };
+  const getData = () => {
+    firestore()
+      .collectionGroup('messages')
+      .get()
+      .then(querySnapshot => {
+        const data = [];
+        const groupedData = {};
+        const responseTimes = {};
+        const responseTimePercentage = {};
+        querySnapshot.forEach(doc => {
+          d = doc.data();
+          if (d.senderId != undefined) {
+            const momentObj = moment(d.createdAt.toDate());
+
+            // Format the moment object to the desired date string
+            const dateString = momentObj.format('YYYY-MM-DD HH:mm:ss');
+            data.push({
+              createdAt: dateString,
+              senderId: d.senderId,
+              senderName: d.senderName,
+              receiverId: d.receiverId,
+            });
+
+            for (let i = 0; i < data.length - 1; i++) {
+              const currentMessage = data[i];
+              const nextMessage = data[i + 1];
+
+              // Check if the receiverId matches and calculate the response time
+              if (currentMessage.receiverId === nextMessage.senderId) {
+                const responseTime =
+                  new Date(nextMessage.createdAt) -
+                  new Date(currentMessage.createdAt);
+
+                // If the receiverId is not already a key in responseTimes, initialize it with an empty array
+                if (!responseTimes[nextMessage.senderId]) {
+                  responseTimes[nextMessage.senderId] = [];
+                }
+
+                // Push the response time to the array
+                responseTimes[nextMessage.senderId].push(responseTime);
+              }
+            }
+
+            // Calculate the percentage of response times that fall within a certain timeframe
+            const timeframeInMilliseconds = 60000; // Example: 1 minute
+
+            for (const senderId in responseTimes) {
+              const responseTimesArray = responseTimes[senderId];
+
+              const withinTimeframeCount = responseTimesArray.filter(
+                time => time <= timeframeInMilliseconds,
+              ).length;
+              const percentage =
+                (withinTimeframeCount / responseTimesArray.length) * 100;
+
+              responseTimePercentage[senderId] = percentage.toFixed(2);
+            }
+          }
+        });
+
+        setChatData(responseTimePercentage);
+      });
+  };
+  const getCoinRequest = async () => {
+    try {
+      const uid = await AsyncStorage.getItem('uid');
+      const querySnapshot = await firestore()
+        .collection('coin_trx')
+        .where('status', '==', 'Menunggu Pencairan')
+        .get();
+      const newData = [];
+
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
+        newData.push({uid: doc.id, ...data});
+      });
+      setRequests(newData);
+      // setChats(newData);
+    } catch (error) {}
   };
   const getMUA = async () => {
     try {
@@ -114,10 +204,12 @@ export default function AdminDashboard({navigation, route}) {
     }
   };
   useEffect(() => {
-    getMUA();
+    getData();
     getMOTM();
     getBooking();
     getTopup();
+    getCoinRequest();
+    getMUA();
   }, []);
 
   const handleConfirm = async () => {
@@ -211,6 +303,47 @@ export default function AdminDashboard({navigation, route}) {
     setMUAS(newData);
   };
 
+  const handlePencairan = () => {
+    const trxId = pencairanInfo.uid;
+    const uid = pencairanInfo.mua_id;
+    const newCoin = pencairanInfo.nominal;
+
+    firestore()
+      .collection('mua')
+      .doc(uid)
+      .update({
+        coin: firestore.FieldValue.increment(newCoin),
+      })
+      .then(() => {
+        firestore()
+          .collection('coin_trx')
+          .doc(trxId)
+          .update({
+            status: 'Dicairkan',
+          })
+          .then(res => {
+            getTopup();
+            getCoinRequest();
+            Toast.show({
+              type: 'success',
+              text1: 'Pencairan Coin Berhasil',
+            });
+          })
+          .catch(error => {
+            Toast.show({
+              type: 'danger',
+              text1: 'Pencairan coin gagal',
+            });
+          });
+      })
+      .catch(error => {
+        Toast.show({
+          type: 'danger',
+          text1: 'Pencairan coin gagal',
+        });
+      });
+  };
+
   const handleChooseMUA = e => {
     navigation.navigate('MUAProfile', {
       data: e,
@@ -220,6 +353,7 @@ export default function AdminDashboard({navigation, route}) {
 
   return (
     <ScrollView flex={1} bgColor={'#FFF2F2'}>
+      {/* Modal Top Up */}
       <Modal isOpen={showModalTopup} onClose={() => setShowModalTopup(false)}>
         <Modal.Content maxWidth="400px">
           <Modal.CloseButton />
@@ -248,6 +382,51 @@ export default function AdminDashboard({navigation, route}) {
                 onPress={() => {
                   setShowModalTopup(false);
                   handleConfirm();
+                }}>
+                Confirm
+              </Button>
+            </Button.Group>
+          </Modal.Footer>
+        </Modal.Content>
+      </Modal>
+
+      {/* Modal Pencairan  */}
+      <Modal
+        isOpen={showModalPencairan}
+        onClose={() => setShowModalPencairan(false)}>
+        <Modal.Content maxWidth="400px">
+          <Modal.CloseButton />
+          <Modal.Header>
+            <VStack>
+              <Text fontWeight={'bold'}>
+                {pencairanInfo.bank + ' ' + pencairanInfo.no_rek}
+              </Text>
+              <Text fontWeight={'bold'}>a/n {pencairanInfo.mua_name}</Text>
+            </VStack>
+          </Modal.Header>
+          <Modal.Body>
+            <Text fontSize={20} fontWeight={'bold'}>
+              {new Intl.NumberFormat('id-ID', {
+                minimumFractionDigits: 0,
+              }).format(parseInt(pencairanInfo.nominal))}{' '}
+              Coin
+            </Text>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button.Group space={2}>
+              <Button
+                variant="ghost"
+                colorScheme="blueGray"
+                onPress={() => {
+                  setShowModalPencairan(false);
+                }}>
+                Cancel
+              </Button>
+              <Button
+                colorScheme={'success'}
+                onPress={() => {
+                  setShowModalPencairan(false);
+                  handlePencairan();
                 }}>
                 Confirm
               </Button>
@@ -284,6 +463,15 @@ export default function AdminDashboard({navigation, route}) {
         <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
         <Heading>Appointment Schedule</Heading>
         <ListBooking onPressItem={handleBooking} data={booking} />
+        <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
+        <Heading>Coin Request</Heading>
+        <ListCoinRequest
+          data={requests}
+          onPressItem={e => {
+            setPencairanInfo(e);
+            setShowModalPencairan(true);
+          }}
+        />
         <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
         <Heading>New Topup</Heading>
         <ListTopupAdmin
@@ -446,6 +634,7 @@ export default function AdminDashboard({navigation, route}) {
               ) : null}
 
               <ListMua
+                dataChat={chatData}
                 data={muas}
                 onChat={handleChatWith}
                 onPressItem={handleChooseMUA}

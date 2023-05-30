@@ -23,7 +23,12 @@ import {Image, Dimensions, TouchableOpacity} from 'react-native';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
 import IoniconsIcon from 'react-native-vector-icons/Ionicons';
 
-import {CoinSelection, ListAppointment, ListTopup} from '../components';
+import {
+  CoinSelection,
+  ListAppointment,
+  ListTopup,
+  ListHistory,
+} from '../components';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 
@@ -37,53 +42,74 @@ export default function UserProfile({navigation, route}) {
   const _height = Dimensions.get('screen').height;
   const user = route.params.user;
   const [appointment, setAppontment] = useState([]);
+  const [history, setHistory] = useState([]);
   const [topup, setTopup] = useState([]);
   const [selectValue, setSelectValue] = useState(0);
+  const getHistory = async () => {
+    try {
+      const uid = await AsyncStorage.getItem('uid');
+      const querySnapshot = await firestore()
+        .collection('booking')
+        .limit(10)
+        .where('customer_id', '==', uid)
+        .get();
+      const newData = [];
+      querySnapshot.forEach(doc => {
+        newData.push({id: doc.id, data: doc.data()});
+      });
 
+      setHistory(newData);
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      console.log('Error getting documents: ', error);
+    }
+  };
+  const getAppointment = async () => {
+    try {
+      const uid = await AsyncStorage.getItem('uid');
+      const querySnapshot = await firestore()
+        .collection('booking')
+        .where('status_pekerjaan', '==', 'Menunggu')
+        .where('customer_id', '==', uid)
+        .get();
+      const newData = [];
+      querySnapshot.forEach(doc => {
+        newData.push({id: doc.id, data: doc.data()});
+      });
+
+      setAppontment(newData);
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      console.log('Error getting documents: ', error);
+    }
+  };
+  const getTrx = async () => {
+    try {
+      const uid = await AsyncStorage.getItem('uid');
+      const querySnapshot = await firestore()
+        .collection('transaction')
+        .where('customer_id', '==', uid)
+        .where('jenis', '==', 'topup')
+        .where('dikonfirmasi', '==', false)
+        .get();
+      const newData = [];
+      querySnapshot.forEach(doc => {
+        newData.push(doc.data());
+      });
+
+      setTopup(newData);
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      console.log('Error getting documents: ', error);
+    }
+  };
   useEffect(() => {
-    const getAppointment = async () => {
-      try {
-        const uid = await AsyncStorage.getItem('uid');
-        const querySnapshot = await firestore()
-          .collection('booking')
-          .where('status_pekerjaan', '==', 'Menunggu')
-          .where('customer_id', '==', uid)
-          .get();
-        const newData = [];
-        querySnapshot.forEach(doc => {
-          newData.push(doc.data());
-        });
-
-        setAppontment(newData);
-        setIsLoading(false);
-      } catch (error) {
-        setIsLoading(false);
-        console.log('Error getting documents: ', error);
-      }
-    };
-    const getTrx = async () => {
-      try {
-        const uid = await AsyncStorage.getItem('uid');
-        const querySnapshot = await firestore()
-          .collection('transaction')
-          .where('customer_id', '==', uid)
-          .where('jenis', '==', 'topup')
-          .where('dikonfirmasi', '==', false)
-          .get();
-        const newData = [];
-        querySnapshot.forEach(doc => {
-          newData.push(doc.data());
-        });
-
-        setTopup(newData);
-        setIsLoading(false);
-      } catch (error) {
-        setIsLoading(false);
-        console.log('Error getting documents: ', error);
-      }
-    };
     getAppointment();
     getTrx();
+    getHistory();
   }, []);
 
   const uploadImage = async imageUri => {
@@ -147,6 +173,31 @@ export default function UserProfile({navigation, route}) {
         uploadImage(result.assets[0].uri);
       }
     });
+  };
+
+  const handleCancel = async e => {
+    firestore()
+      .collection('booking')
+      .doc(e)
+      .update({
+        status_pekerjaan: 'Batal',
+      })
+      .then(() => {
+        Toast.show({
+          type: 'success',
+          text1: 'Pembatalan berhasil',
+        });
+        getAppointment();
+        getTrx();
+        getHistory();
+      })
+      .catch(error => {
+        Toast.show({
+          type: 'error',
+          text1: 'Pembatalan gagal',
+          text2: error,
+        });
+      });
   };
 
   const handleChat = async e => {
@@ -275,13 +326,30 @@ export default function UserProfile({navigation, route}) {
         {isLoading == true ? (
           <Spinner color={'#F47C7C'} />
         ) : (
-          <ListAppointment data={appointment} onPressItem={handleChat} />
+          <ListAppointment
+            data={appointment}
+            onCancelItem={handleCancel}
+            onPressItem={handleChat}
+          />
+        )}
+        <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
+        <Heading size={'md'} mb={4}>
+          History Order
+        </Heading>
+        {isLoading == true ? (
+          <Spinner color={'#F47C7C'} />
+        ) : (
+          <ListHistory data={history} />
         )}
         <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
         <Heading size={'md'} mb={4}>
           Topup Status
         </Heading>
-        <ListTopup data={topup} />
+        {isLoading == true ? (
+          <Spinner color={'#F47C7C'} />
+        ) : (
+          <ListTopup data={topup} />
+        )}
       </ScrollView>
       <Button
         onPress={() =>

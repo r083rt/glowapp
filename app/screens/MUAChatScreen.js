@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import firestore from '@react-native-firebase/firestore';
 export default function MUAChat({navigation, route}) {
   const [muas, setMUAS] = useState([]);
+  const user = route.params.user;
   useEffect(() => {
     getChatHistory();
     getMUA();
@@ -90,8 +91,17 @@ export default function MUAChat({navigation, route}) {
     // });
   };
 
-  const handleChat = e => {
-    console.log(e);
+  const handleChat = async e => {
+    const nama = user.nama;
+    const uid = await AsyncStorage.getItem('uid');
+
+    navigation.navigate('Chat', {
+      chatId: e.uid + uid,
+      receiverId: e.uid,
+      receiverName: e.nama,
+      senderId: uid,
+      senderName: nama,
+    });
   };
   return (
     <Box flex={1} p={4} mt={10}>
@@ -103,7 +113,9 @@ export default function MUAChat({navigation, route}) {
         </TouchableOpacity>
         <Heading>Conversations</Heading>
       </HStack>
-      <ListMuaChat data={muas} onPressItem={handleChat} />
+      <ScrollView flex={1}>
+        <ListMuaChat data={muas} onPressItem={handleChat} />
+      </ScrollView>
     </Box>
   );
 }

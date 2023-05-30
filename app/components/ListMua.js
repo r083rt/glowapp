@@ -3,8 +3,10 @@ import {Text, HStack, VStack, Box, Divider, Button, Image} from 'native-base';
 import {TouchableOpacity, FlatList} from 'react-native';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
 import IoniconsIcon from 'react-native-vector-icons/Ionicons';
-const ListMua = ({onPressItem, onChat, data}) => {
+const ListMua = ({onPressItem, onChat, data, dataChat}) => {
   const renderItem = ({item, index}) => {
+    const chatPercent = dataChat;
+    const percentage = chatPercent[item.uid];
     const rate = new Intl.NumberFormat('id-ID', {
       minimumFractionDigits: 0,
     }).format(parseInt(item.rate));
@@ -39,6 +41,12 @@ const ListMua = ({onPressItem, onChat, data}) => {
               {item.kategori}
             </Text>
             <Text fontSize={12}>{styles}</Text>
+            {percentage ? (
+              <Text fontWeight={'bold'} mt={3} fontSize={12}>
+                {percentage}% Responsive
+              </Text>
+            ) : null}
+
             <Button
               mt={3}
               _text={{fontWeight: 'bold'}}

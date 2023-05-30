@@ -17,6 +17,8 @@ import {
   Modal,
   TextField,
   Image,
+  Stack,
+  ZStack,
 } from 'native-base';
 import Toast from 'react-native-toast-message';
 import auth from '@react-native-firebase/auth';
@@ -235,44 +237,47 @@ export default function MUAProfile({navigation, route}) {
         />
       )}
 
-      <ScrollView flex={1} p={5} bgColor={'#FFF2F2'}>
-        <TouchableOpacity
-          style={{marginTop: 40}}
-          onPress={() => navigation.goBack()}>
-          <IoniconsIcon name="arrow-back-circle" color={'#F47C7C'} size={40} />
-        </TouchableOpacity>
-        <HStack mt={10} space={5} w={_width * 0.8}>
-          <Box w={_width * 0.3} h={_width * 0.4}>
-            <Image
-              source={{uri: data.foto}}
-              borderRadius={10}
-              style={{
-                width: _width * 0.3,
-                height: _width * 0.38,
-                resizeMode: 'cover',
-              }}
+      <Box w={_width} h={_width * 0.6}>
+        <Box position={'absolute'} zIndex={9999999} top={10} left={5}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <IoniconsIcon
+              name="arrow-back-circle"
+              color={'#F47C7C'}
+              size={40}
             />
-          </Box>
-          <VStack space={3}>
+          </TouchableOpacity>
+        </Box>
+        <Image
+          source={{uri: data.foto}}
+          style={{
+            height: _width * 0.6,
+            resizeMode: 'cover',
+          }}
+        />
+      </Box>
+
+      <ScrollView flex={1} bgColor={'#FFF2F2'}>
+        <HStack space={5} w={_width} p={5}>
+          <VStack space={3} w={_width * 0.9}>
             <Heading size={'lg'}>{data.nama}</Heading>
-            <Text w={220} fontWeight={'bold'} fontSize={15}>
-              {data.kategori}
+            <Text fontWeight={'bold'} fontSize={12}>
+              Kategori : {data.kategori} Makeup
             </Text>
-            <HStack space={3}>
-              <FontAwesomeIcon name={'coins'} size={16} color={'#F47C7C'} />
-              <Text color={'#F47C7C'} fontWeight={'bold'}>
-                {data.rate}
-              </Text>
+            <Text fontSize={12}>Bio : {data.keterangan}</Text>
+
+            <HStack space={3} mt={3} alignItems={'center'}>
+              <FontAwesomeIcon name={'coins'} size={13} color={'#F47C7C'} />
+              <Text color={'#F47C7C'}>{data.rate}</Text>
             </HStack>
 
             <Box
-              w={120}
+              // w={120}
               px={5}
               py={2}
               alignContent={'center'}
               alignItems={'center'}
               bgColor={'#F47C7C'}
-              borderRadius={15}>
+              borderRadius={5}>
               <TouchableOpacity onPress={handleStartChat}>
                 <HStack space={2}>
                   <IoniconsIcon
@@ -289,14 +294,17 @@ export default function MUAProfile({navigation, route}) {
           </VStack>
         </HStack>
         <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
-        <Heading>Portofolio</Heading>
-        {loading == true ? (
-          <Center flex={1}>
-            <Spinner />
-          </Center>
-        ) : (
-          <ListPorto onPressItem={handleSelectPhoto} data={porto} />
-        )}
+
+        <Box w={_width} alignItems={'center'} justifyContent={'center'} p={10}>
+          <Heading>Portofolio</Heading>
+          {loading == true ? (
+            <Center flex={1}>
+              <Spinner />
+            </Center>
+          ) : (
+            <ListPorto onPressItem={handleSelectPhoto} data={porto} />
+          )}
+        </Box>
       </ScrollView>
       <Button
         isDisabled={parseInt(route.params.coin) < parseInt(data.rate)}

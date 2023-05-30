@@ -15,6 +15,7 @@ import {
   ScrollView,
   Image,
 } from 'native-base';
+import moment from 'moment';
 import {Dimensions} from 'react-native';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
 import firestore from '@react-native-firebase/firestore';
@@ -31,6 +32,7 @@ export default function DashBoard({navigation, route}) {
 
   const [loading, setLoading] = useState(true); // Set loading to true on component mount
 
+  const [chatData, setChatData] = useState([]);
   const [activeSlide, setActiveSlide] = useState(0);
   const [promos, setPromos] = useState([]);
   const [motm, setMOTM] = useState(null);
@@ -41,7 +43,72 @@ export default function DashBoard({navigation, route}) {
   const [tips, setTips] = useState([]);
   const user = route.params.user;
 
+  const getData = () => {
+    firestore()
+      .collectionGroup('messages')
+      .get()
+      .then(querySnapshot => {
+        const data = [];
+        const groupedData = {};
+        const responseTimes = {};
+        const responseTimePercentage = {};
+        querySnapshot.forEach(doc => {
+          d = doc.data();
+          if (d.senderId != undefined) {
+            const momentObj = moment(d.createdAt.toDate());
+
+            // Format the moment object to the desired date string
+            const dateString = momentObj.format('YYYY-MM-DD HH:mm:ss');
+            data.push({
+              createdAt: dateString,
+              senderId: d.senderId,
+              senderName: d.senderName,
+              receiverId: d.receiverId,
+            });
+
+            for (let i = 0; i < data.length - 1; i++) {
+              const currentMessage = data[i];
+              const nextMessage = data[i + 1];
+
+              // Check if the receiverId matches and calculate the response time
+              if (currentMessage.receiverId === nextMessage.senderId) {
+                const responseTime =
+                  new Date(nextMessage.createdAt) -
+                  new Date(currentMessage.createdAt);
+
+                // If the receiverId is not already a key in responseTimes, initialize it with an empty array
+                if (!responseTimes[nextMessage.senderId]) {
+                  responseTimes[nextMessage.senderId] = [];
+                }
+
+                // Push the response time to the array
+                responseTimes[nextMessage.senderId].push(responseTime);
+              }
+            }
+
+            // Calculate the percentage of response times that fall within a certain timeframe
+            const timeframeInMilliseconds = 60000; // Example: 1 minute
+
+            for (const senderId in responseTimes) {
+              const responseTimesArray = responseTimes[senderId];
+
+              const withinTimeframeCount = responseTimesArray.filter(
+                time => time <= timeframeInMilliseconds,
+              ).length;
+              const percentage =
+                (withinTimeframeCount / responseTimesArray.length) * 100;
+
+              responseTimePercentage[senderId] = percentage.toFixed(2);
+            }
+          }
+        });
+
+        setChatData(responseTimePercentage);
+      });
+  };
+
   useEffect(() => {
+    getData();
     getPromo();
     getMOTM();
     getMUA();
@@ -61,21 +128,67 @@ export default function DashBoard({navigation, route}) {
       console.log('Error getting documents: ', error);
     }
   };
+
   const getMOTM = async () => {
-    try {
-      const querySnapshot = await firestore()
-        .collection('mua')
-        .where('motm', '==', true)
-        .get();
-      const newData = [];
-      querySnapshot.forEach(doc => {
-        newData.push(doc.data());
+    firestore()
+      .collection('booking')
+      .get()
+      .then(querySnapshot => {
+        const newData = [];
+        querySnapshot.forEach(doc => {
+          newData.push(doc.data());
+        });
+
+        const counts = {};
+        let maxCount = 0;
+        let mostBookedMuaId = null;
+
+        for (const booking of newData) {
+          const muaId = booking.mua_id;
+          counts[muaId] = (counts[muaId] || 0) + 1;
+
+          if (counts[muaId] > maxCount) {
+            maxCount = counts[muaId];
+            mostBookedMuaId = muaId;
+          }
+        }
+        console.log('Most booked MUA ID:', mostBookedMuaId);
+        console.log('Number of bookings:', maxCount);
+        firestore()
+          .collection('mua')
+          .doc(mostBookedMuaId)
+          .get()
+          .then(documentSnapshot => {
+            if (documentSnapshot.exists) {
+              const data = documentSnapshot.data();
+              console.log('MUA Document Snapshot:', data);
+              setMOTM(data);
+              // Further processing of the MUA document snapshot
+            } else {
+              console.log('MUA document does not exist');
+            }
+          })
+          .catch(error => {
+            console.log('Error getting MUA document:', error);
+          });
       });
-      setMOTM(newData[0]);
-    } catch (error) {
-      console.log('Error getting documents: ', error);
-    }
   };
+
+  // const getMOTM = async () => {
+  //   try {
+  //     const querySnapshot = await firestore()
+  //       .collection('mua')
+  //       .where('motm', '==', true)
+  //       .get();
+  //     const newData = [];
+  //     querySnapshot.forEach(doc => {
+  //       newData.push(doc.data());
+  //     });
+  //     setMOTM(newData[0]);
+  //   } catch (error) {
+  //     console.log('Error getting documents: ', error);
+  //   }
+  // };
   const getPromo = async () => {
     try {
       const querySnapshot = await firestore().collection('promo').get();
@@ -83,7 +196,7 @@ export default function DashBoard({navigation, route}) {
       querySnapshot.forEach(doc => {
         newData.push(doc.data());
       });
-      console.log('carousel ' + newData);
+
       setPromos(newData);
     } catch (error) {
       console.log('Error getting documents: ', error);
@@ -139,6 +252,62 @@ export default function DashBoard({navigation, route}) {
       newData.push(doc.data());
     });
     setMUAS(newData);
+  };
+
+  const handleFilterRate = async rate => {
+    if (rate == 1) {
+      const querySnapshot = await firestore()
+        .collection('mua')
+        .orderBy('rate', 'asc')
+        .startAt(0)
+        .endAt(300)
+        .get();
+
+      const newData = [];
+      querySnapshot.forEach(doc => {
+        newData.push(doc.data());
+      });
+      setMUAS(newData);
+    } else if (rate == 2) {
+      const querySnapshot = await firestore()
+        .collection('mua')
+        .orderBy('rate', 'asc')
+        .startAt(300)
+        .endAt(500)
+        .get();
+
+      const newData = [];
+      querySnapshot.forEach(doc => {
+        newData.push(doc.data());
+      });
+      setMUAS(newData);
+    } else if (rate == 3) {
+      const querySnapshot = await firestore()
+        .collection('mua')
+        .orderBy('rate', 'asc')
+        .startAt(500)
+        .endAt(1500)
+        .get();
+
+      const newData = [];
+      querySnapshot.forEach(doc => {
+        newData.push(doc.data());
+      });
+      setMUAS(newData);
+    } else if (rate == 4) {
+      const querySnapshot = await firestore()
+        .collection('mua')
+        .orderBy('rate', 'asc')
+        .startAt(1500)
+        .endAt(2500)
+        .get();
+
+      const newData = [];
+      querySnapshot.forEach(doc => {
+        newData.push(doc.data());
+      });
+      setMUAS(newData);
+    }
   };
 
   const handleSearch = async () => {
@@ -247,7 +416,9 @@ export default function DashBoard({navigation, route}) {
             }
             backgroundColor={'#F47C7C'}
             onPress={() => {
-              navigation.navigate('MUAChat');
+              navigation.navigate('MUAChat', {
+                user: user,
+              });
             }}>
             Chat
           </Button>
@@ -262,7 +433,6 @@ export default function DashBoard({navigation, route}) {
               renderItem={({item}) => (
                 <TouchableOpacity
                   onPress={() => {
-                    console.log(item);
                     navigation.navigate('PromoDetail', {
                       promo: item,
                     });
@@ -319,7 +489,7 @@ export default function DashBoard({navigation, route}) {
                         }}
                       />
                     </Box>
-                    <VStack space={3}>
+                    <VStack space={1}>
                       <Heading size={'lg'}>{motm.nama}</Heading>
                       <Text w={220} numberOfLines={3} fontSize={13}>
                         {motm.keterangan}
@@ -347,56 +517,78 @@ export default function DashBoard({navigation, route}) {
             </Center>
           ) : (
             <>
-              <Button.Group my={3}>
-                <Button
-                  shadow={2}
-                  bgColor={'#FFF'}
-                  color={'#F47C7C'}
-                  _text={{color: '#F47C7C', fontWeight: 'bold'}}
-                  minW={100}
-                  leftIcon={
-                    <FontAwesomeIcon
-                      name="sort-amount-down-alt"
-                      size={20}
-                      color={'#F47C7C'}
-                    />
-                  }
-                  borderRadius={30}
-                  onPress={() => setFilterType('rate')}>
-                  Sort
-                </Button>
-                <Button
-                  shadow={2}
-                  bgColor={'#FFF'}
-                  color={'#F47C7C'}
-                  _text={{color: '#F47C7C', fontWeight: 'bold'}}
-                  leftIcon={
-                    <FontAwesomeIcon
-                      name="filter"
-                      size={20}
-                      color={'#F47C7C'}
-                    />
-                  }
-                  minW={100}
-                  borderRadius={30}
-                  onPress={() => setFilterType('style')}>
-                  Filter
-                </Button>
-                <Button
-                  shadow={2}
-                  bgColor={'#FFF'}
-                  color={'#F47C7C'}
-                  _text={{color: '#F47C7C', fontWeight: 'bold'}}
-                  leftIcon={
-                    <FontAwesomeIcon name="times" size={20} color={'#F47C7C'} />
-                  }
-                  minW={100}
-                  borderRadius={30}
-                  onPress={getMUA}>
-                  Reset
-                </Button>
-              </Button.Group>
-
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <Button.Group my={10}>
+                  <Button
+                    shadow={2}
+                    bgColor={'#FFF'}
+                    color={'#F47C7C'}
+                    _text={{color: '#F47C7C', fontWeight: 'bold'}}
+                    minW={100}
+                    leftIcon={
+                      <FontAwesomeIcon
+                        name="sort-amount-down-alt"
+                        size={20}
+                        color={'#F47C7C'}
+                      />
+                    }
+                    borderRadius={30}
+                    onPress={() => setFilterType('rate')}>
+                    Sort
+                  </Button>
+                  <Button
+                    shadow={2}
+                    bgColor={'#FFF'}
+                    color={'#F47C7C'}
+                    _text={{color: '#F47C7C', fontWeight: 'bold'}}
+                    leftIcon={
+                      <FontAwesomeIcon
+                        name="filter"
+                        size={20}
+                        color={'#F47C7C'}
+                      />
+                    }
+                    minW={100}
+                    borderRadius={30}
+                    onPress={() => setFilterType('style')}>
+                    Filter Style
+                  </Button>
+                  <Button
+                    shadow={2}
+                    bgColor={'#FFF'}
+                    color={'#F47C7C'}
+                    _text={{color: '#F47C7C', fontWeight: 'bold'}}
+                    leftIcon={
+                      <FontAwesomeIcon
+                        name="coins"
+                        size={20}
+                        color={'#F47C7C'}
+                      />
+                    }
+                    minW={100}
+                    borderRadius={30}
+                    onPress={() => setFilterType('filterrate')}>
+                    Filter Rate
+                  </Button>
+                  <Button
+                    shadow={2}
+                    bgColor={'#FFF'}
+                    color={'#F47C7C'}
+                    _text={{color: '#F47C7C', fontWeight: 'bold'}}
+                    leftIcon={
+                      <FontAwesomeIcon
+                        name="times"
+                        size={20}
+                        color={'#F47C7C'}
+                      />
+                    }
+                    minW={100}
+                    borderRadius={30}
+                    onPress={getMUA}>
+                    Reset
+                  </Button>
+                </Button.Group>
+              </ScrollView>
               {filterType === 'rate' ? (
                 <HStack space={2} mb={3}>
                   <Box p={2} px={3} bgColor={'#FFF'} borderRadius={30}>
@@ -455,8 +647,46 @@ export default function DashBoard({navigation, route}) {
                 </HStack>
               ) : null}
 
+              {filterType === 'filterrate' ? (
+                <HStack space={2} mb={3}>
+                  <Box p={2} px={3} bgColor={'#FFF'} borderRadius={30}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        handleFilterRate(1);
+                      }}>
+                      <Text color={'#F47C7C'}>{'< 300'}</Text>
+                    </TouchableOpacity>
+                  </Box>
+                  <Box p={2} px={3} bgColor={'#FFF'} borderRadius={30}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        handleFilterRate(2);
+                      }}>
+                      <Text color={'#F47C7C'}>{'300 - 500'}</Text>
+                    </TouchableOpacity>
+                  </Box>
+                  <Box p={2} px={3} bgColor={'#FFF'} borderRadius={30}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        handleFilterRate(3);
+                      }}>
+                      <Text color={'#F47C7C'}>{'500 - 1500'}</Text>
+                    </TouchableOpacity>
+                  </Box>
+                  <Box p={2} px={3} bgColor={'#FFF'} borderRadius={30}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        handleFilterRate(4);
+                      }}>
+                      <Text color={'#F47C7C'}>{'> 1500'}</Text>
+                    </TouchableOpacity>
+                  </Box>
+                </HStack>
+              ) : null}
+
               <ListMua
                 data={muas}
+                dataChat={chatData}
                 onChat={handleChatWith}
                 onPressItem={handleChooseMUA}
               />

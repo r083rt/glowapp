@@ -20,7 +20,13 @@ import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import {TouchableOpacity} from 'react-native-gesture-handler';
-import {ListBooking, ListChat, ListPendingCoin} from '../components';
+import {
+  ListBooking,
+  ListChat,
+  ListPendingCoin,
+  ListConfirm,
+  ListHistoryOrderMUA,
+} from '../components';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import moment from 'moment';
 import Toast from 'react-native-toast-message';
@@ -34,7 +40,9 @@ export default function MUADashboard({navigation, route}) {
   const [showModalWithdraw, setShowModalWithdraw] = useState(false);
   const [pendingCoin, setPendingCoin] = useState([]);
   const [user, setUser] = useState(null);
+  const [history, setHistory] = useState([]);
   const [booking, setBooking] = useState([]);
+  const [confirm, setConfirm] = useState([]);
   const [chats, setChats] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState({
     id: '',
@@ -69,7 +77,7 @@ export default function MUADashboard({navigation, route}) {
     }
   };
 
-  const getBooking = async () => {
+  const getConfirm = async () => {
     try {
       const uid = await AsyncStorage.getItem('uid');
       const querySnapshot = await firestore()
@@ -84,7 +92,49 @@ export default function MUADashboard({navigation, route}) {
         const data = doc.data();
         newData.push({uid: doc.id, ...data});
       });
+      setConfirm(newData);
+    } catch (error) {
+      console.log('Error getting documents: ', error);
+    }
+  };
+
+  const getBooking = async () => {
+    try {
+      const uid = await AsyncStorage.getItem('uid');
+      const querySnapshot = await firestore()
+        .collection('booking')
+        .where('status_pekerjaan', '==', 'Diterima')
+        .where('mua_id', '==', uid)
+        .get();
+      const newData = [];
+
+      querySnapshot.forEach(doc => {
+        console.log(doc.id);
+        const data = doc.data();
+        newData.push({uid: doc.id, ...data});
+      });
       setBooking(newData);
+    } catch (error) {
+      console.log('Error getting documents: ', error);
+    }
+  };
+
+  const getHistoryOrder = async () => {
+    try {
+      const uid = await AsyncStorage.getItem('uid');
+      const querySnapshot = await firestore()
+        .collection('booking')
+        .where('status_pekerjaan', '==', 'Selesai')
+        .where('mua_id', '==', uid)
+        .get();
+      const newData = [];
+
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
+        newData.push({uid: doc.id, ...data});
+      });
+      console.log(newData);
+      setHistory(newData);
     } catch (error) {
       console.log('Error getting documents: ', error);
     }
@@ -132,6 +182,8 @@ export default function MUADashboard({navigation, route}) {
     getBooking();
     getProfile();
     getPendingCoin();
+    getConfirm();
+    getHistoryOrder();
   }, []);
 
   const handleWithdraw = async e => {
@@ -145,7 +197,7 @@ export default function MUADashboard({navigation, route}) {
     }
     try {
       await firestore().collection('coin_trx').doc(selectedID).update({
-        status: 'Dicairkan',
+        status: 'Menunggu Pencairan',
         bank: bank.toString(),
         no_rek: noRek.toString(),
         nama_nasabah: namaNasabah.toString(),
@@ -195,7 +247,7 @@ export default function MUADashboard({navigation, route}) {
         mua_name: nama,
         status: 'Baru',
       });
-
+    getPendingCoin();
     const documentRef = firestore()
       .collection('users')
       .doc(selectedBooking.customer_id);
@@ -228,6 +280,56 @@ export default function MUADashboard({navigation, route}) {
       text1: 'Update Booking Status Success',
     });
     getBooking();
+  };
+
+  const handleAcceptBooking = async e => {
+    console.log(e.uid);
+    firestore()
+      .collection('booking')
+      .doc(e.uid)
+      .update({
+        status_pekerjaan: 'Diterima',
+      })
+      .then(() => {
+        Toast.show({
+          type: 'success',
+          text1: 'Update status berhasil.',
+        });
+        getBooking();
+        getConfirm();
+        getHistoryOrder();
+      })
+      .catch(error => {
+        Toast.show({
+          type: 'error',
+          text1: 'Gagal update',
+        });
+      });
+  };
+
+  const handleDeclineBooking = async e => {
+    console.log(e.uid);
+    firestore()
+      .collection('booking')
+      .doc(e.uid)
+      .update({
+        status_pekerjaan: 'Ditolak',
+      })
+      .then(() => {
+        Toast.show({
+          type: 'success',
+          text1: 'Update status berhasil.',
+        });
+        getBooking();
+        getConfirm();
+        getHistoryOrder();
+      })
+      .catch(error => {
+        Toast.show({
+          type: 'error',
+          text1: 'Gagal update',
+        });
+      });
   };
 
   return (
@@ -312,82 +414,103 @@ export default function MUADashboard({navigation, route}) {
         </Modal.Content>
       </Modal>
       {user != null ? (
-        <VStack space={2} px={5}>
-          <HStack space={6} mt={10}>
-            <TouchableOpacity
-              onPress={() => {
-                navigation.navigate('MUADetails', {
-                  user: user,
-                });
-              }}>
-              <Avatar
-                w={110}
-                h={110}
-                bg="#F47C7C"
-                source={{
-                  uri: user.foto,
-                }}>
-                {user.nama}
-              </Avatar>
-            </TouchableOpacity>
-
-            <VStack space={1}>
-              <Heading fontWeight={'extrabold'} size={'xl'} color={'#F47C7C'}>
-                Hi, {user.nama}
-              </Heading>
-              <Text color={'#F47C7C'} fontWeight={'bold'}>
-                {user.kategori}
-              </Text>
-              <Button
-                _text={{fontWeight: 'bold'}}
-                size={'xs'}
-                width={100}
-                leftIcon={
-                  <FontAwesomeIcon
-                    size={15}
-                    name="photo-video"
-                    color={'#FFF'}
-                  />
-                }
-                backgroundColor={'#F47C7C'}
+        <ScrollView flex={1}>
+          <VStack space={2} px={5}>
+            <HStack space={6} mt={10}>
+              <TouchableOpacity
                 onPress={() => {
-                  navigation.navigate('MUAPorto');
+                  navigation.navigate('MUADetails', {
+                    user: user,
+                  });
                 }}>
-                Portofolio
-              </Button>
-            </VStack>
-          </HStack>
-          <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
-          <Heading>Appointment Schedule</Heading>
-          <ListBooking
-            onPressItem={e => {
-              setSelectedBooking({
-                id: e.uid,
-                kategori: e.kategori,
-                nama: e.nama,
-                nominal: parseInt(e.nominal),
-                tanggal: e.tanggal,
-                jam: e.jam,
-                catatan: e.catatan,
-                customer_id: e.customer_id,
-              });
-              setShowModal(true);
-            }}
-            data={booking}
-          />
-          <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
-          <Heading>New Chat</Heading>
-          <ListChat onPressItem={handleViewChat} data={chats} />
-          <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
-          <Heading>Coin Bisa Dicairkan</Heading>
-          <ListPendingCoin
-            data={pendingCoin}
-            onPressItem={e => {
-              setSelectedID(e.uid);
-              setShowModalWithdraw(true);
-            }}
-          />
-        </VStack>
+                <Avatar
+                  w={110}
+                  h={110}
+                  bg="#F47C7C"
+                  source={{
+                    uri: user.foto,
+                  }}>
+                  {user.nama}
+                </Avatar>
+              </TouchableOpacity>
+
+              <VStack space={1}>
+                <Heading fontWeight={'extrabold'} size={'xl'} color={'#F47C7C'}>
+                  Hi, {user.nama}
+                </Heading>
+                <HStack alignItems={'center'} space={2}>
+                  <FontAwesomeIcon name={'coins'} color={'#F47C7C'} size={16} />
+                  <Heading
+                    fontWeight={'extrabold'}
+                    size={'md'}
+                    color={'#F47C7C'}>
+                    {user.coin}
+                  </Heading>
+                </HStack>
+
+                <Button
+                  _text={{fontWeight: 'bold'}}
+                  size={'xs'}
+                  width={100}
+                  leftIcon={
+                    <FontAwesomeIcon
+                      size={15}
+                      name="photo-video"
+                      color={'#FFF'}
+                    />
+                  }
+                  backgroundColor={'#F47C7C'}
+                  onPress={() => {
+                    navigation.navigate('MUAPorto');
+                  }}>
+                  Portofolio
+                </Button>
+              </VStack>
+            </HStack>
+            <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
+            <Heading>Confirm Appointment</Heading>
+            <ListConfirm
+              data={confirm}
+              onAcceptItem={handleAcceptBooking}
+              onDeclineItem={handleDeclineBooking}
+            />
+
+            <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
+            <Heading>Appointment Schedule</Heading>
+            <ListBooking
+              onPressItem={e => {
+                setSelectedBooking({
+                  id: e.uid,
+                  kategori: e.kategori,
+                  nama: e.nama,
+                  nominal: parseInt(e.nominal),
+                  tanggal: e.tanggal,
+                  jam: e.jam,
+                  catatan: e.catatan,
+                  customer_id: e.customer_id,
+                });
+                setShowModal(true);
+              }}
+              data={booking}
+            />
+            <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
+            <Heading>History Order</Heading>
+            <ListHistoryOrderMUA data={history} />
+
+            <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
+            <Heading>New Chat</Heading>
+            <ListChat onPressItem={handleViewChat} data={chats} />
+            <Divider my={4} bgColor={'#EF9F9F'} opacity={0.3} />
+            <Heading>Coin Bisa Dicairkan</Heading>
+            <ListPendingCoin
+              data={pendingCoin}
+              onPressItem={e => {
+                setSelectedID(e.uid);
+                setShowModalWithdraw(true);
+              }}
+            />
+          </VStack>
+        </ScrollView>
       ) : (
         <Center flex={1}>
           <Spinner />
